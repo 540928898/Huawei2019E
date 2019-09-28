@@ -1,0 +1,63 @@
+
+import ncread
+#读取数据值 
+nc_obj=ncread.Dataset('sst.wkmean.1990-present.nc')
+
+lat=(nc_obj.variables['lat'][:])
+lon=(nc_obj.variables['lon'][:])
+sst=(nc_obj.variables['sst'][:])
+times=(nc_obj.variables['time'][:])
+time_bnds=(nc_obj.variables['time_bnds'][:])
+
+
+from dateutil.relativedelta import relativedelta
+def change(data):
+    df = pd.DataFrame(data,columns = ['temp'])
+    global count 
+    count = -1
+    t = pd.datetime(year = 1990,month = 1,day = 1)
+    def flag(x):
+       global count 
+       count +=1
+       temp = t+relativedelta(weeks = count)
+       return temp
+    df['time'] = df.temp.apply(lambda x : flag(x))
+    return df
+def selectpoint(x,y):
+    t = change(sst[:,x,y])
+    t['year'] = t.time.apply(lambda x : x.year)
+    return t
+
+#海洋温度具有周期性 
+t = selectpoint(90 - 55,-138+180)
+tt = t.groupby('year')['temp'].agg({'tempmean':'mean'})
+plt.legend(['东太平洋海洋'])
+plt.title('东太平洋SST')
+plt.xlabel('时间')
+plt.ylabel('SST')
+plt.plot(tt.index[:-1],tt.values[:-1])
+
+#海洋与温度的变化
+fig, ax1 = plt.subplots()
+ax1.plot([1990+i for i in range(len(bc['MinMinTemp']))],bc['MinMinTemp'])
+ax1.set_xlabel('时间') 
+ax1.set_ylabel('平均最低温度')
+ax1.legend(['年最低温度'])
+ax2 = ax1.twinx()
+ax2.plot(tt.index[:-1],tt.values[:-1],color='r')
+ax2.set_ylabel('海洋温度')
+ax2.legend(['海洋温度'])
+
+
+#对整个加拿大的影响
+
+fig, ax1 = plt.subplots()
+ax1.plot([1990+i for i in range(len(low['MeanMeanTemp']))],low['MeanMeanTemp'])
+ax1.set_xlabel('时间') 
+ax1.set_ylabel('平均最低温度')
+ax1.legend(['年最低温度'])
+ax2 = ax1.twinx()
+ax2.plot(tt.index[:-1],tt.values[:-1],color='r')
+ax2.set_ylabel('海洋温度')
+ax2.legend(['海洋温度'])
+
